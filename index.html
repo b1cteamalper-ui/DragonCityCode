@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Dragon City - Puan Sistemi</title>
+  <style>
+    :root{--bg:#0f0f14;--card:#111217;--accent:#00b050}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,Segoe UI,Roboto,Arial;background-color:#042009;color:#e6f8df;min-height:100vh;display:flex;align-items:center;justify-content:center;background-image:linear-gradient(180deg,#042009 0%, #073018 100%), url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600" viewBox="0 0 600 600"><g fill="%2300b050" fill-opacity="0.06"><path d="M150 300c30-60 120-90 180-60 60 30 90 120 60 180-30 60-120 90-180 60-60-30-90-120-60-180z"/></g></svg>');background-repeat:repeat;background-size:420px;}
+    .app{width:940px;max-width:95%;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border-radius:14px;padding:18px;box-shadow:0 10px 30px rgba(2,6,23,0.7);} 
+    header{display:flex;align-items:center;justify-content:space-between}
+    .brand{font-weight:900;font-size:34px;letter-spacing:2px}
+    .rainbow{background: linear-gradient(90deg,#ff004d, #ff7a00, #ffef00, #00e676, #00b0ff, #7c4dff, #ff1493);-webkit-background-clip: text;background-clip: text;color: transparent;background-size: 400% 100%;animation: rainbow 6s linear infinite;}
+    @keyframes rainbow{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+    .controls{display:flex;gap:8px;align-items:center}
+    button{background:#0e2414;border:1px solid rgba(255,255,255,0.04);color:inherit;padding:8px 12px;border-radius:8px;cursor:pointer}
+    main{display:flex;gap:18px;margin-top:18px}
+    .panel{flex:1;background:rgba(255,255,255,0.02);padding:18px;border-radius:12px}
+    form{display:flex;flex-direction:column;gap:10px}
+    input[type=text], input[type=password], input[type=tel]{padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit}
+    .center{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:36px}
+    .big{font-size:18px;font-weight:700}
+    .code-entry{display:flex;gap:8px;align-items:center}
+    .puan-badge{position:absolute;right:18px;top:18px;background:rgba(255,255,255,0.03);padding:8px 12px;border-radius:999px;font-weight:700}
+    .muted{opacity:0.7;font-size:13px}
+    .msg{padding:10px;border-radius:8px}
+    .success{background:rgba(46,125,50,0.12);color:#a7f3a6}
+    .error{background:rgba(211,47,47,0.12);color:#ffd1d1}
+    @media (max-width:700px){header{flex-direction:column;align-items:flex-start}.controls{margin-top:10px}}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="brand rainbow">DRAGON CITY</div>
+      <div style="position:relative">
+        <div class="puan-badge">Puan: <span id="puanVal">0</span></div>
+        <div class="controls" style="margin-top:8px">
+          <button id="showRegister">Kayıt Ol</button>
+          <button id="showLogin">Giriş Yap</button>
+          <button id="storeBtn" style="display:none">Mağaza</button>
+          <button id="logoutBtn" style="display:none">Çıkış</button>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <div class="panel" id="authPanel">
+        <div id="registerView" style="display:none">
+          <h3>Kayıt Ol</h3>
+          <form id="registerForm">
+            <input type="text" id="regUser" placeholder="Kullanıcı adı" required />
+            <input type="password" id="regPass" placeholder="Parola" required />
+            <input type="tel" id="regPhone" placeholder="Telefon (isteğe bağlı)" />
+            <button type="submit">Kayıt Ol</button>
+            <div class="muted">Kullanıcı adı eşsiz olmalıdır. Şifre tarayıcıda güvenli şekilde saklanır.</div>
+          </form>
+        </div>
+
+        <div id="loginView" style="display:none">
+          <h3>Giriş Yap</h3>
+          <form id="loginForm">
+            <input type="text" id="logUser" placeholder="Kullanıcı adı" required />
+            <input type="password" id="logPass" placeholder="Parola" required />
+            <button type="submit">Giriş Yap</button>
+            <div class="muted">Kayıtlı kullanıcı adı ve parolanızla giriş yapın.</div>
+          </form>
+        </div>
+
+        <div id="welcome" class="center">
+          <div class="big">Hoş geldiniz! Kayıt olun veya giriş yapın.</div>
+        </div>
+      </div>
+
+      <div class="panel" id="dashPanel" style="display:none">
+        <div id="dashContent" style="display:none">
+          <div class="center">
+            <div class="big">Puan kodunu gir</div>
+            <div style="height:12px"></div>
+            <div class="code-entry">
+              <input type="text" id="codeInput" placeholder="Kodunuzu buraya yazın" />
+              <button id="submitCode">Gönder</button>
+            </div>
+            <div id="msg" style="margin-top:12px"></div>
+          </div>
+        </div>
+        <div id="notLogged" class="center">
+          <div class="muted">Giriş yapınca puan kısmı aktif olacak.</div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    async function sha256hex(text){
+      const enc = new TextEncoder();
+      const data = enc.encode(text.trim());
+      const hash = await crypto.subtle.digest('SHA-256', data);
+      const bytes = new Uint8Array(hash);
+      return Array.from(bytes).map(b=>b.toString(16).padStart(2,'0')).join('');
+    }
+
+    const CODE_MAP = {
+      "1438ded05fa23c2dc47c560ec48ab364e4f331e67cc22f5a32416e05f68a82c9": 500,
+      "5b925b423254b40cada45dd6d6651c5a519a3efe84aa37cd11532595989284ab": 10000,
+      "ca2f8ee9c1aebb2e611c1374931775542ffd148aed52bca6170dcef93138ea6e": 250,
+      "a81e905968dd8d98d0877a1af6a3f3d434892f00568783b7df5fe5437a9e3f92": 100000
+    };
+
+    function loadUsers(){ return JSON.parse(localStorage.getItem('dc_users')||'{}'); }
+    function saveUsers(u){ localStorage.setItem('dc_users', JSON.stringify(u)); }
+    function loadGlobalUsed(){ return JSON.parse(localStorage.getItem('dc_global_used')||'[]'); }
+    function saveGlobalUsed(a){ localStorage.setItem('dc_global_used', JSON.stringify(a)); }
+
+    let currentUser = null;
+
+    function setCurrentUser(u){
+      currentUser = u;
+      if(u){
+        localStorage.setItem('dc_current_user', u);
+        document.getElementById('logoutBtn').style.display='inline-block';
+        document.getElementById('showLogin').style.display='none';
+        document.getElementById('showRegister').style.display='none';
+        document.getElementById('storeBtn').style.display='inline-block';
+        document.getElementById('welcome').style.display='none';
+        document.getElementById('loginView').style.display='none';
+        document.getElementById('registerView').style.display='none';
+        document.getElementById('notLogged').style.display='none';
+        document.getElementById('dashContent').style.display='block';
+        document.getElementById('dashPanel').style.display='block';
+        updatePuanDisplay();
+      } else {
+        localStorage.removeItem('dc_current_user');
+        document.getElementById('logoutBtn').style.display='none';
+        document.getElementById('showLogin').style.display='inline-block';
+        document.getElementById('showRegister').style.display='inline-block';
+        document.getElementById('storeBtn').style.display='none';
+        document.getElementById('welcome').style.display='block';
+        document.getElementById('dashContent').style.display='none';
+        document.getElementById('notLogged').style.display='block';
+        document.getElementById('dashPanel').style.display='block';
+        document.getElementById('puanVal').innerText='0';
+      }
+    }
+
+    function updatePuanDisplay(){
+      if(!currentUser){ document.getElementById('puanVal').innerText = '0'; return; }
+      const users = loadUsers();
+      const u = users[currentUser];
+      document.getElementById('puanVal').innerText = (u && u.points) ? u.points : 0;
+    }
+
+    document.getElementById('showRegister').addEventListener('click', ()=>{
+      document.getElementById('registerView').style.display='block';
+      document.getElementById('loginView').style.display='none';
+      document.getElementById('welcome').style.display='none';
+    });
+    document.getElementById('showLogin').addEventListener('click', ()=>{
+      document.getElementById('loginView').style.display='block';
+      document.getElementById('registerView').style.display='none';
+      document.getElementById('welcome').style.display='none';
+    });
+    document.getElementById('logoutBtn').addEventListener('click', ()=>{ setCurrentUser(null); currentUser = null; });
+    document.getElementById('storeBtn').addEventListener('click', openStore);
+
+    document.getElementById('registerForm').addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const user = document.getElementById('regUser').value.trim();
+      const pass = document.getElementById('regPass').value;
+      const phone = document.getElementById('regPhone').value.trim();
+      if(!user || !pass){ alert('Kullanıcı adı ve parola gerekli.'); return; }
+      const users = loadUsers();
+      if(users[user]){ alert('Bu kullanıcı adı zaten kayıtlı.'); return; }
+      const passHash = await sha256hex(user+':'+pass);
+      users[user] = { passwordHash: passHash, points: 0, usedCodes: [], phone: phone };
+      saveUsers(users);
+      alert('Kayıt başarılı! Giriş yapabilirsiniz.');
+      document.getElementById('registerForm').reset();
+      document.getElementById('registerView').style.display='none';
+      document.getElementById('loginView').style.display='block';
+    });
+
+    document.getElementById('loginForm').addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const user = document.getElementById('logUser').value.trim();
+      const pass = document.getElementById('logPass').value;
+      const users = loadUsers();
+      if(!users[user]){ alert('Kullanıcı bulunamadı.'); return; }
+      const passHash = await sha256hex(user+':'+pass);
+      if(passHash !== users[user].passwordHash){ alert('Parola yanlış.'); return; }
+      setCurrentUser(user);
+    });
+
+    document.getElementById('submitCode').addEventListener('click', async ()=>{
+      const code = document.getElementById('codeInput').value.trim();
+      const msgEl = document.getElementById('msg');
+      msgEl.innerHTML='';
+      if(!currentUser){ showMsg('Önce giriş yapın.', 'error'); return; }
+      if(!code){ showMsg('Lütfen kod girin.', 'error'); return; }
+      const codeHash = await sha256hex(code);
+      if(!(codeHash in CODE_MAP)){ showMsg('Kod bulunamadı veya yanlış.', 'error'); return; }
+      const globalUsed = loadGlobalUsed();
+      if(globalUsed.includes(codeHash)){ showMsg('Bu kod zaten kullanılmış. (Kullanım hakkı 1)', 'error'); return; }
+      const users = loadUsers();
+      users[currentUser].points = (users[currentUser].points || 0) + CODE_MAP[codeHash];
+      users[currentUser].usedCodes = users[currentUser].usedCodes || [];
+      users[currentUser].usedCodes.push(codeHash);
+      saveUsers(users);
+      globalUsed.push(codeHash);
+      saveGlobalUsed(globalUsed);
+      updatePuanDisplay();
+      showMsg('Tebrikler! Puan eklendi: +' + CODE_MAP[codeHash], 'success');
+      document.getElementById('codeInput').value='';
+    });
+
+    function showMsg(text, type){
+      const el = document.getElementById('msg');
+      el.innerText = text;
+      el.className = 'msg ' + (type==='success' ? 'success' : 'error');
+      setTimeout(()=>{ el.innerText=''; el.className=''; }, 5000);
+    }
+
+    // Store: open new window and build DOM programmatically
+    function openStore(){
+      const w = window.open('', '_blank');
+      if(!w){ alert('Popup engellendi — lütfen açılır pencerelere izin verin.'); return; }
+      w.document.title = 'Dragon City - Mağaza';
+      const style = w.document.createElement('style');
+      style.textContent = 'body{font-family:Inter,Segoe UI,Roboto,Arial;background:linear-gradient(180deg,#042009 0%, #073018 100%);color:#e6f8df;padding:24px} .card{background:rgba(255,255,255,0.02);padding:18px;border-radius:12px;max-width:520px;margin:18px auto} h1{margin-top:0} .row{display:flex;justify-content:space-between;align-items:center;margin:12px 0} button{padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:#0e2414;color:inherit;cursor:pointer} .muted{opacity:0.8}';
+      w.document.head.appendChild(style);
+      const container = w.document.createElement('div');
+      container.className = 'card';
+      container.innerHTML = '<h1>Mağaza</h1>' +
+        '<div id="status" class="muted">İşlem durumu burada gösterilecek.</div>' +
+        '<div class="row"><div>Premium</div><div>1.000 puan <button id="buyPremium">Satın Al</button></div></div>' +
+        '<div class="row"><div>VIP</div><div>10.000 puan <button id="buyVIP">Satın Al</button></div></div>' +
+        '<div style="height:18px"></div>' +
+        '<div class="muted">Not: Satın alma puanları hesabınızdan düşer. Yetersiz puan varsa satın alma işlemi gerçekleşmez.</div>';
+      w.document.body.appendChild(container);
+
+      function refreshDisplay(){
+        const cur = localStorage.getItem('dc_current_user');
+        const statusEl = w.document.getElementById('status');
+        if(!cur){ statusEl.innerText = 'Önce giriş yapın. Mağazayı kullanmak için ana sayfaya dönün.'; return; }
+        const users = loadUsers();
+        const u = users[cur];
+        if(!u){ statusEl.innerText = 'Kullanıcı bulunamadı.'; return; }
+        statusEl.innerText = 'Hesap: ' + cur + ' — Puan: ' + (u.points||0);
+      }
+
+      const buyPremium = w.document.getElementById('buyPremium');
+      const buyVIP = w.document.getElementById('buyVIP');
+
+      buyPremium.addEventListener('click', ()=>{
+        const cur = localStorage.getItem('dc_current_user');
+        if(!cur){ alert('Önce giriş yapın.'); return; }
+        const users = loadUsers();
+        const u = users[cur];
+        if(!u){ alert('Kullanıcı bulunamadı.'); return; }
+        if((u.points||0) < 1000){ alert('Yetersiz puan'); return; }
+        u.points -= 1000; u.purchases = u.purchases||[]; u.purchases.push('premium'); saveUsers(users);
+        alert('Premium satın alındı!'); try{ if(window && window.updatePuanDisplay) window.updatePuanDisplay(); }catch(e){}; refreshDisplay();
+      });
+
+      buyVIP.addEventListener('click', ()=>{
+        const cur = localStorage.getItem('dc_current_user');
+        if(!cur){ alert('Önce giriş yapın.'); return; }
+        const users = loadUsers();
+        const u = users[cur];
+        if(!u){ alert('Kullanıcı bulunamadı.'); return; }
+        if((u.points||0) < 10000){ alert('Yetersiz puan'); return; }
+        u.points -= 10000; u.purchases = u.purchases||[]; u.purchases.push('vip'); saveUsers(users);
+        alert('VIP satın alındı!'); try{ if(window && window.updatePuanDisplay) window.updatePuanDisplay(); }catch(e){}; refreshDisplay();
+      });
+
+      refreshDisplay();
+    }
+
+    // On load: restore session if any
+    (function(){
+      const savedUser = localStorage.getItem('dc_current_user');
+      const users = loadUsers();
+      if(savedUser && users[savedUser]){ setCurrentUser(savedUser); }
+      else { setCurrentUser(null); }
+    })();
+  </script>
+</body>
+</html>
